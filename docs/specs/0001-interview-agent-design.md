@@ -249,7 +249,7 @@ flowchart LR
 
 ### 3.9 安全与隐私（轻量版）
 
-- 入口保护（三选一，见 §8）：Cloudflare Tunnel + Access / Ingress Basic Auth / IP 白名单
+- 入口：**Vercel 同源代理（BFF）**——浏览器只与 Vercel（HTTPS）通信，Vercel 服务端把 `/api/*` 转发到 API。API 只暴露 HTTP，无域名/TLS/CORS/混合内容问题；M1 加 LLM 端点前必须加代理密钥校验
 - Prompt injection：简历与 JD 是**不可信输入**，注入点隔离（作为数据不作指令、输出侧过滤）；评测集中加入注入攻击用例
 - PII：简历数据仅存自建库；报告与日志避免泄入第三方
 - Secrets：SOPS（或 sealed-secrets）加密入库，仓库不落明文；托管服务凭据（Supabase / Upstash）走同一套，连接串只注入服务端
@@ -264,7 +264,7 @@ flowchart LR
 |---|---|---|---|
 | dev | 本地 docker compose（PG + Redis）+ `uv run uvicorn` + `next dev` | 日常开发 | 快速迭代 |
 | local-full | 本地 kind（可建**多节点**：1 control-plane + 2 workers）：**等价全栈**（Postgres+pgvector、Redis、MinIO、kube-prometheus-stack、Phoenix） | 重型工程练习 + CI 集成测试 | StatefulSet/PVC、备份恢复演练、监控栈、自托管观测、真多节点调度/HPA/驱逐演练 |
-| prod | 自有 **3C2G VPS** + k3s：只跑 API + worker（Traefik Ingress） | 真实公网运行 | 滚动发布、探针、资源限额、密钥、迁移 Job、CICD |
+| prod | 自有 **3C2G VPS** + k3s：只跑 API + worker（Traefik Ingress，仅 HTTP；公网入口经 Vercel 同源代理） | 真实公网运行 | 滚动发布、探针、资源限额、密钥、迁移 Job、CICD |
 
 数据与前端外推：Supabase（Postgres + pgvector + Storage）、Upstash（Redis）、Vercel（前端）、Langfuse Cloud（观测）。
 应用通过环境变量切换数据端点，同一套代码在 local-full 与 prod 之间保持行为等价（12-factor）。迁移与评测在 CI 的 kind 里验证；生产发布 = 镜像更新 + 迁移 Job。
@@ -294,7 +294,7 @@ flowchart LR
 
 | 组件 | 形态 | 说明 |
 |---|---|---|
-| API | Deployment + Service + Ingress | requests/limits 严格设置；HPA 清单照写（单节点下以 `kubectl top` / 驱逐演练为主） |
+| API | Deployment + Service + Ingress（仅 HTTP） | requests/limits 严格设置；公网入口经 Vercel 同源代理（BFF，见 §3.9）；HPA 清单照写（单节点下以 `kubectl top` / 驱逐演练为主） |
 | Worker | Deployment（1 副本） | 队列驱动；并发 = 1，控内存 |
 | 迁移 | Job（Helm pre-upgrade hook） | 打托管 Postgres；expand/contract 兼容 |
 | 托管数据入口 | ExternalName Service（`pg` / `redis`） | 应用固定连 `pg:5432` / `redis:6379`，由 Service 指向 Supabase / Upstash（环境无关）；连接走 Supavisor pooler，session 模式，池很小（API 5 / worker 2） |
@@ -406,7 +406,7 @@ flowchart LR
 
 | # | 事项 | 结论 / 选项 | 状态 |
 |---|---|---|---|
-| Q1 | 3C2G VPS 的区域与入口 | 机器已有；需确认所在地（影响域名备案与 LLM API 访问）与入口方式（IP+端口 / 域名+TLS / CF Tunnel） | **待定**（M0 前） |
+| Q1 | 3C2G VPS 的区域与入口 | ✅ 已定：境外 VPS；入口用 Vercel 同源代理（BFF），API 仅 HTTP | 已定 |
 | Q2 | 免费层选型与区域 | **已定**：Supabase（新加坡 / 东京）+ Upstash + Vercel Hobby（非商用）+ R2（备份）；Neon 排除（免费层无亚洲区 + 5 分钟自动挂起） | 已定 |
 | Q3 | 评测工具链 | DeepEval 主力 + Promptfoo 补充 + Ragas 可选（§3.7） | 已定 |
 | Q4 | CD 形态 | 起步 Actions + Helm/kubectl；M6 评估 ArgoCD GitOps 迁移 | 已定（分层） |
@@ -491,3 +491,4 @@ flowchart LR
 | ADR-0007 | 简历/JD 的 prompt injection 防护策略 |
 | ADR-0008 | 3C2G VPS 的区域与入口方案（Q1 决策后补） |
 | ADR-0009 | 免费托管选型（Supabase / Upstash / Vercel / R2；排除 Neon）与端点可切换设计 |
+| ADR-0010 | 公网入口用 Vercel 同源代理（BFF），不给 API 上 TLS（取舍：省掉 cert-manager 练习与域名成本，换取 M1 SSE 需按每轮短连接设计） |

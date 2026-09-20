@@ -124,7 +124,8 @@ API `8000`（容器内 `8000`）；web 本地 `3000`。
 | 前端（Vercel）与后端跨域 | API 配 `CORS_ORIGINS`；前端用 `NEXT_PUBLIC_API_BASE` |
 | 首次 GitHub Actions + GHCR + Vercel 接线繁琐 | 拆成独立小步，每步单独验证（见实现计划） |
 | 免费层账号注册与密钥准备 | 列为计划中的前置任务，逐项勾选 |
-| 前后端分离 + 无域名 → 混合内容（HTTPS 的 Vercel 页面调 HTTP API 会被浏览器拦截） | M0 内解决：优先 `sslip.io` + cert-manager 给 API 上真 TLS（无需买域名）；若 VPS 在境内导致 80/443 受限，则 M0 暂用 Vercel 服务端代理，M1 前解决 |
+| 前后端分离 + 无域名 → 混合内容（HTTPS 页面调 HTTP API 被浏览器拦截） | ✅ 已解决：Vercel 同源代理（BFF），浏览器全程只与 Vercel 通信 |
+| API 裸暴露在公网 HTTP（无认证） | M0 无 LLM 调用，风险低；**M1 加 LLM 端点前**必须加 `X-Proxy-Secret` 校验（并考虑换非标准端口） |
 
 ## 8. 需用户决策 / 操作（M0 开工前）
 
@@ -133,6 +134,6 @@ API `8000`（容器内 `8000`）；web 本地 `3000`。
 | 1 | 仓库与 remote | ✅ 已有：`origin = github.com/BarclayFu/interview_agent`（当前 0 commit）；需首次提交 + 推送 |
 | 2 | 账号与密钥 | 用户自行注册并填充环境变量（Supabase / Upstash / Langfuse Cloud / Vercel）；仓库不放密钥 |
 | 3 | 无域名 | ✅ 已定：IP 直连，不买域名、不备案 |
-| 4 | **VPS 所在地 + TLS** | 待确认境内/境外：境外 → `sslip.io` + cert-manager（真 HTTPS，无需域名）；境内 → 80/443 未备案可能受限，改用 Vercel 服务端代理或另议 |
+| 4 | 入口与 TLS | ✅ 已定：**Vercel 同源代理（BFF）**。浏览器只与 `https://<project>.vercel.app` 通信，Vercel 服务端把 `/api/*` 转发到 `http://<VPS_IP>:8000`。API 不需要域名 / TLS / cert-manager，也没有 CORS 与混合内容问题。代价：少练 cert-manager；M1 流式 SSE 需设计为每轮短连接（Vercel Hobby 函数 300s 上限） |
 | 5 | 打包方式 | ✅ Helm（已确认） |
 | 6 | 前端形态 | ✅ 前后端分离：`web/` 由 Vercel 部署（Root Directory = `web/`） |
