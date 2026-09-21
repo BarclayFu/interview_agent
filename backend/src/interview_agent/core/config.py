@@ -1,10 +1,14 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# 必须用绝对路径：以 backend/ 为 CWD 启动时，相对 ".env" 读不到仓库根的 .env
+_ENV_FILE = Path(__file__).resolve().parents[4] / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
     app_env: str = "dev"
     database_url: str = "postgresql://postgres:postgres@localhost:5432/interview_agent"
