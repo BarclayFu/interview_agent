@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Response, status
+from langfuse import observe
 
 from interview_agent.core.clients import check_postgres, check_redis
 from interview_agent.core.config import Settings, get_settings
@@ -37,6 +38,7 @@ async def readyz(response: Response) -> dict[str, str]:
 
 
 @router.get("/version")
+@observe()
 async def version() -> dict[str, str]:
     return {
         "version": os.getenv("GIT_SHA", "dev"),
