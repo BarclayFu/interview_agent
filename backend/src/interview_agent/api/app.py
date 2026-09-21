@@ -11,7 +11,7 @@ from interview_agent.core.telemetry import init_telemetry
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    app.state.langfuse = init_telemetry(get_settings())
+    init_telemetry(get_settings())
     yield
 
 
