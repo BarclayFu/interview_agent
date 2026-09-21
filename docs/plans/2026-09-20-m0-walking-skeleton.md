@@ -1929,3 +1929,47 @@ git push --follow-tags
 - Helm pre-upgrade Job 的超时行为（M0 默认关闭，M1 打开时验证）
 - Traefik IngressClass 名称：执行 T12 后跑 `kubectl get ingressclass` 确认是 `traefik`
 - kind 三节点对本机资源有要求（建议 ≥ 8GB 可用内存）
+
+---
+
+## 执行记录
+
+### 已完成 Task（含验收证据）
+
+| Task | 提交 | 验收证据 |
+|---|---|---|
+| 1 脚手架与工具链 | `dba2693` | `uv sync --dev` 成功；`make help` 正常（11 行 Tab 缩进、0 空格缩进） |
+| 2 配置层 | `d568bd2` | 2 passed |
+| 3 `/healthz` + `/version` | `44ce157` | 4 passed |
+| 4 `/readyz` | `4c5699d` | 6 passed；容器内 503 语义正确 |
+| 5 多阶段 Dockerfile | `9530cf8` | 镜像 318MB；容器内 `/healthz` 200、`/readyz` 503、健康检查已挂 |
+| 6 本地 compose | `504d9ad` | `/readyz` 真实返回 `{"db":"ok","redis":"ok"}` |
+| 7 Langfuse 遥测 | `2623c25` + `1c69b73` | 无密钥优雅降级；桥接后单例成功拿到密钥 |
+| 8 Next.js 前端 | `47b77e1` | SSR 显示 `DB：ok · Redis：ok`；`/api/version` 同源代理 200 |
+| 9 评测骨架 | `caa3060` | 2 passed |
+| 10 CI 流水线 | `d48ef90` | GitHub Actions run `35612690796` → **success** |
+
+### 计划偏离（执行中发现并修正，7 处）
+
+| # | 计划原文 | 实际做法 | 原因 |
+|---|---|---|---|
+| 1 | `backend/.dockerignore` | 根目录 `.dockerignore` | 构建上下文是仓库根，`backend/` 下的 dockerignore 不生效 |
+| 2 | uv 镜像 tag `0.5` | `0.11.8` | 与生成本地 `uv.lock` 的版本对齐，避免 lock 格式不兼容 |
+| 3 | `minio/minio:latest` | `quay.io/minio/minio:latest` | Docker Hub 上该仓库已不可用（MinIO 调整了分发渠道） |
+| 4 | `Settings(env_file=".env")` | 显式绝对路径指向仓库根 `.env` | 以 `backend/` 为 CWD 启动时，相对路径读不到根 `.env`（会静默失效） |
+| 5 | `init_telemetry` 返回 Langfuse client | 改为把配置桥接进 `os.environ`，返回 `None` | 实测 `Langfuse(...)` 不注册为全局单例，而 `@observe()` 只认单例（单例只读环境变量） |
+| 6 | `datetime.now(timezone.utc)` | `datetime.now(UTC)` | ruff UP017（py312 起推荐 `datetime.UTC`） |
+| 7 | 无 | `pyproject.toml` 增加 mypy override | asyncpg 无 `py.typed`，mypy strict 报 `import-untyped` |
+
+### 待执行（需外部条件）
+
+| Task | 阻塞项 |
+|---|---|
+| 11 k3s 安装与裁剪 | 需要 VPS SSH 访问 |
+| 12 Helm chart | 需要本机 `helm` 才能 lint/template 验证 |
+| 13 部署流水线 | 需要 Task 11 产出的 `KUBE_CONFIG` secret |
+| 14 / 15 Supabase / Upstash | 需要注册账号并取密钥 |
+| 16 生产 Secret | 依赖 14 / 15 |
+| 17 Vercel | 需要导入项目并配置 `API_ORIGIN` |
+| 18 kind 全栈 | 需要本机 `kind` |
+| 19 M0 验收 | 依赖 11-18 |
