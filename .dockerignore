@@ -1,0 +1,11 @@
+.git
+.omo
+docs
+web/node_modules
+web/.next
+backend/.venv
+backend/.pytest_cache
+backend/.mypy_cache
+backend/.ruff_cache
+backend/tests
+**/__pycache__
