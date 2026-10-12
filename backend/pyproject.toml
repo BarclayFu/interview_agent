@@ -47,6 +47,8 @@ packages = ["src/interview_agent"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# alembic 自动生成文件不跟人斗格式
+extend-exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
