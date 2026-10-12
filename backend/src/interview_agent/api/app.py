@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from interview_agent.api.routes import health
+from interview_agent.api.routes import health, resumes
 from interview_agent.core.config import get_settings
 from interview_agent.core.security import ProxySecretMiddleware
 from interview_agent.core.telemetry import init_telemetry
@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(ProxySecretMiddleware)
     app.include_router(health.router)
+    app.include_router(resumes.router)
     return app
 
 

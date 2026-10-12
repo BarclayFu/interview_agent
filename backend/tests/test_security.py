@@ -1,9 +1,18 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from interview_agent.api.app import create_app
 from interview_agent.core.config import get_settings
 
 PROTECTED = ["/resumes", "/sessions"]
+
+
+@pytest.fixture(autouse=True)
+def _clear_settings_cache():
+    """monkeypatch 的 env 在用例后还原，但 lru_cache 不会；手动清，防污染后续用例。"""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 def _client(monkeypatch, secret: str | None) -> TestClient:

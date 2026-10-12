@@ -48,3 +48,4 @@ def test_factory_defaults_to_stub_without_key(monkeypatch):
     monkeypatch.setenv("USE_STUB_LLM", "1")
     assert isinstance(get_provider(), StubProvider)
     reset_provider()
+    get_settings.cache_clear()  # 防缓存泄漏：不影响后续测试的环境

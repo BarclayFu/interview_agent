@@ -155,6 +155,24 @@ class StubProvider:
         node: str = "unknown",
         session_id: uuid.UUID | str | None = None,
     ) -> Any:
+        if schema.__name__ == "ExtractedProjects":
+            from interview_agent.reports.extract import ExtractedProject, ExtractedProjects
+
+            await record_usage(Usage(session_id, node, "stub", self.model, 10, 20, 1))
+            return ExtractedProjects(
+                projects=[
+                    ExtractedProject(
+                        name="订单系统重构",
+                        period="2023.03-2024.01",
+                        role="后端负责人",
+                        tech=["Python", "PostgreSQL", "Redis"],
+                        claims=["峰值 QPS 从 800 提升到 2400"],
+                    ),
+                    ExtractedProject(
+                        name="支付网关", role="核心开发", tech=["Go", "MySQL"], claims=[]
+                    ),
+                ]
+            )
         sample = {name: _synth_value(name, field) for name, field in schema.model_fields.items()}
         await record_usage(Usage(session_id, node, "stub", self.model, 10, 20, 1))
         return schema.model_validate(sample)
