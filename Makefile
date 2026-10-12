@@ -1,4 +1,4 @@
-.PHONY: help api web test lint fmt typecheck up down kind-up kind-down
+.PHONY: help api web test lint fmt typecheck up down kind-up kind-down worker migrate migration evals integration
 
 help:
 	@grep -E '^[a-zA-Z_-]+:' Makefile | cut -d: -f1 | sort
@@ -32,3 +32,18 @@ kind-up:
 
 kind-down:
 	kind delete cluster --name interview-agent
+
+worker:
+	cd backend && uv run arq interview_agent.worker.settings.WorkerSettings
+
+migrate:
+	cd backend && uv run alembic upgrade head
+
+migration:
+	cd backend && uv run alembic revision --autogenerate -m "$(m)"
+
+evals:
+	cd backend && uv run pytest ../evals -q
+
+integration:
+	cd backend && uv run pytest -q -m integration

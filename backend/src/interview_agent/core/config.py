@@ -20,6 +20,23 @@ class Settings(BaseSettings):
     langfuse_base_url: str = "https://cloud.langfuse.com"
     otel_service_name: str = "interview-agent-api"
 
+    # LLM
+    deepseek_api_key: str | None = None
+    deepseek_base_url: str = "https://api.deepseek.com"
+    llm_model_chat: str = "deepseek-chat"
+    llm_model_report: str = "deepseek-reasoner"
+    use_stub_llm: bool = False
+
+    # S3 兼容存储（dev: MinIO / prod: Supabase Storage）
+    s3_endpoint_url: str = "http://localhost:9000"
+    s3_bucket: str = "interview-agent"
+    s3_access_key: str = "minioadmin"
+    s3_secret_key: str = "minioadmin"
+    s3_region: str = "us-east-1"
+
+    # 安全：Vercel BFF 注入；为空则不强制（本地开发便利，生产必须配置）
+    proxy_secret: str | None = None
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

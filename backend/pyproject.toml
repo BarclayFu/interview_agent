@@ -13,6 +13,18 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-http>=1.29",
     "opentelemetry-instrumentation-fastapi>=0.50b0",
     "langfuse>=3.0",
+    "langgraph>=1.0",
+    "langgraph-checkpoint-postgres>=2.0",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",
+    "psycopg[binary,pool]>=3.2",
+    "sqlalchemy[asyncio]>=2.0",
+    "alembic>=1.14",
+    "arq>=0.26",
+    "boto3>=1.35",
+    "pymupdf>=1.24",
+    "sse-starlette>=2.2",
+    "python-multipart>=0.0.12",
 ]
 
 [dependency-groups]
@@ -22,6 +34,7 @@ dev = [
     "httpx>=0.28",
     "ruff>=0.8",
     "mypy>=1.13",
+    "deepeval>=2.0",
 ]
 
 [build-system]
@@ -47,6 +60,11 @@ strict = true
 module = "asyncpg.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["boto3.*", "botocore.*", "pymupdf.*", "sse_starlette.*", "deepeval.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = ["integration: 需要本地 compose 依赖（PG/Redis/MinIO）"]
