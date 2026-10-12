@@ -173,6 +173,17 @@ class StubProvider:
                     ),
                 ]
             )
+        if schema.__name__ == "DecideResult":
+            from interview_agent.reports.decide import DecideResult
+
+            await record_usage(Usage(session_id, node, "stub", self.model, 10, 20, 1))
+            return DecideResult(
+                score=6,
+                rationale="stub-rationale",
+                evidence="stub-evidence",
+                next_action="next_question",
+                reply="stub-reply",
+            )
         sample = {name: _synth_value(name, field) for name, field in schema.model_fields.items()}
         await record_usage(Usage(session_id, node, "stub", self.model, 10, 20, 1))
         return schema.model_validate(sample)

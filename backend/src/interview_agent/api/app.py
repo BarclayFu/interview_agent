@@ -8,12 +8,15 @@ from interview_agent.api.routes import health, resumes
 from interview_agent.core.config import get_settings
 from interview_agent.core.security import ProxySecretMiddleware
 from interview_agent.core.telemetry import init_telemetry
+from interview_agent.engine.checkpointer import close_checkpointer, init_checkpointer
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_telemetry(get_settings())
+    await init_checkpointer()
     yield
+    await close_checkpointer()
 
 
 def create_app() -> FastAPI:
