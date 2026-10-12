@@ -20,6 +20,9 @@ ENV GIT_SHA=${GIT_SHA} BUILT_AT=${BUILT_AT} PATH="/app/.venv/bin:$PATH"
 RUN useradd --create-home --uid 10001 appuser
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
+# 迁移 Job 在容器内执行 alembic upgrade head，需要迁移目录与配置
+COPY backend/alembic.ini ./alembic.ini
+COPY backend/alembic ./alembic
 USER appuser
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \

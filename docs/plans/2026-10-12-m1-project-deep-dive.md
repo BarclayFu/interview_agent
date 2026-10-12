@@ -3557,6 +3557,7 @@ git tag v0.2.0-m1 && git push --follow-tags
 | 8 会话 API+SSE | `2bde3eb` | 3 passed；SSE 全生命周期事件契约验证 |
 | 9 报告生成 | `eef93a4` | 2 passed；双闸幂等；schema v1 完整 |
 | 10 前端四页 | `db78bc5` | `pnpm build` 通过；**BFF 全链路冒烟**（上传→解析→SSE→报告 全通，见下方） |
+| 12 集成测试+CI | 见本提交 | `test_integration_m1.py` 纵切全链路（Stub）；CI 接 compose+alembic；Dockerfile 补 alembic 拷贝 |
 | 修复 | `f3555da` | WorkerSettings.redis_settings 类属性（启动修复，冒烟中发现） |
 
 **BFF 全链路冒烟结果**（Stub 模式，零凭据）：文本简历上传 → worker 解析 done（2 个项目）→ 建会话 →
@@ -3581,13 +3582,14 @@ start SSE（node_start/token×N/question/paused/done）→ answer SSE（feedback
 | 12 | Task 9 结尾空 prompt 提交 | 合并为一次提交（prompt 在 tasks.py 内） | 避免 `--allow-empty` 伪提交 |
 | 13 | BFF 代理 `duplex: "half"` | 移除（body 用 arrayBuffer 缓冲） | 不再需要流式请求体 hack，消除 `@ts-expect-error` |
 | 14 | `WorkerSettings.redis_settings` 静态方法 | 类属性 `RedisSettings.from_dsn(...)` | arq 读类属性，staticmethod 对象没有 `.host`（启动即崩，冒烟抓出） |
+| 15 | Dockerfile 仅拷 `backend/src` | 补拷 `backend/alembic` + `alembic.ini` | 迁移 Job 在容器内跑 `alembic upgrade head`，缺目录必挂（推送前发现） |
+| 16 | CI 仅跑单测 | CI 加 compose up + alembic migrate 步 | 集成测试需 PG/Redis/MinIO，否则推送后 CI 全红 |
 
 ### 待执行
 
 | Task | 阻塞项 |
 |---|---|
 | 11 评测门禁 | 代码/数据集可先写；**验证需用户提供 `DEEPSEEK_API_KEY`**（本地 .env + GitHub Secrets） |
-| 12 集成测试+CI | 无阻塞（Stub 模式可全跑） |
 | 13 上线汇合 | 需用户操作：Supabase/Upstash/Vercel/k3s/本机 helm（spec §9 清单） |
 | 14 ADR+收尾 | 无阻塞；演示录屏需真实 LLM 效果（依赖 11 的 key） |
 
