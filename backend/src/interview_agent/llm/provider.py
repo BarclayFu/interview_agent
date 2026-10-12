@@ -173,6 +173,35 @@ class StubProvider:
                     ),
                 ]
             )
+        if schema.__name__ == "ReportV1":
+            from interview_agent.reports.schema import (
+                DIMENSIONS,
+                DimensionScore,
+                EvidenceItem,
+                PerQuestion,
+                ReportV1,
+            )
+
+            await record_usage(Usage(session_id, node, "stub", self.model, 10, 20, 1))
+            return ReportV1(
+                headline="stub 报告：整体表现中等，细节需要补充。",
+                total_score=3,
+                dimensions=[
+                    DimensionScore(name=n, score=3, comment=f"{n}：stub 评价") for n in DIMENSIONS
+                ],
+                per_question=[
+                    PerQuestion(
+                        question="stub-题",
+                        answer_summary="stub-答",
+                        comment="stub-评",
+                        reference_points=[],
+                    )
+                ],
+                highlights=[EvidenceItem(text="stub-亮点", evidence="QPS 提升3倍")],
+                issues=[EvidenceItem(text="stub-问题", evidence="QPS 提升3倍")],
+                improvements=["补充量化细节（stub）"],
+                next_focus="练习 STAR 结构（stub）",
+            )
         if schema.__name__ == "DecideResult":
             from interview_agent.reports.decide import DecideResult
 

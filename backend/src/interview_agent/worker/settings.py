@@ -2,11 +2,11 @@
 
 from arq.connections import RedisSettings
 
-from interview_agent.worker.tasks import parse_resume
+from interview_agent.worker.tasks import generate_report, parse_resume
 
 
 class WorkerSettings:
-    functions = [parse_resume]
+    functions = [parse_resume, generate_report]
     max_jobs = 1
     job_timeout = 300
 
