@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ApiPing } from "./api-ping";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +28,9 @@ export default async function Home() {
         DB：{ready?.db ?? "?"} · Redis：{ready?.redis ?? "?"}
       </p>
       <ApiPing />
+      <p>
+        <Link href="/upload">上传简历开练</Link> · <Link href="/sessions">历史会话</Link>
+      </p>
       <p style={{ color: "#999", fontSize: 12 }}>API: {API_ORIGIN}</p>
     </main>
   );

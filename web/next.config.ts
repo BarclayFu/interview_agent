@@ -1,13 +1,7 @@
 import type { NextConfig } from "next";
 
-// 同源代理（BFF）：浏览器只与 Vercel 通信（HTTPS、同源），由 Vercel 服务端转发到 API。
-// 因此 API 无需域名与 TLS，也没有混合内容与 CORS 问题。
-const API_ORIGIN = process.env.API_ORIGIN ?? "http://localhost:8000";
-
-const nextConfig: NextConfig = {
-  async rewrites() {
-    return [{ source: "/api/:path*", destination: `${API_ORIGIN}/:path*` }];
-  },
-};
+// 浏览器端 /api/* 由 Route Handler 代理（app/api/[...path]/route.ts，含 X-Proxy-Secret 注入），
+// 不使用 rewrites：rewrites 无法注入 header。服务端渲染仍可直连 API_ORIGIN。
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
