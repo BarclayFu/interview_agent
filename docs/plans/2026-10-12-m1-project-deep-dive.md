@@ -3543,7 +3543,55 @@ git tag v0.2.0-m1 && git push --follow-tags
 
 ## 执行记录
 
-（执行时填写：已完成 Task 表 / 计划偏离表 / 待执行表 —— 格式参照 M0 计划。）
+### 已完成 Task（截至 Task 10，2026-10-12）
+
+| Task | 提交 | 验收证据 |
+|---|---|---|
+| 1 依赖与配置 | `0ec6e7a` | `uv sync` 成功；8 passed；ruff/mypy 绿 |
+| 2 数据模型+Alembic | `c3ecb4f` | 迁移 upgrade/downgrade/upgrade 可逆；10 passed |
+| 3 安全中间件 | `ffa8f31` | 4 passed（拦截/放行/白名单/未配置宽松） |
+| 4 LLM 接入层 | `eb28257` | 4 passed；ledger 落库断言；Stub 单例工厂 |
+| 5 PDF+S3 | `f6fbfbc` | 4 passed（中文 fixture 提取/非 PDF/扫描件/存储回环） |
+| 6 worker+ingestion | `7f1e7e3` | 6 passed；幂等重复消费不重复解析 |
+| 7 会话引擎 | `5d96762`+`878d383` | 6 passed；含**跨进程恢复回归**（PG checkpointer） |
+| 8 会话 API+SSE | `2bde3eb` | 3 passed；SSE 全生命周期事件契约验证 |
+| 9 报告生成 | `eef93a4` | 2 passed；双闸幂等；schema v1 完整 |
+| 10 前端四页 | `db78bc5` | `pnpm build` 通过；**BFF 全链路冒烟**（上传→解析→SSE→报告 全通，见下方） |
+| 修复 | `f3555da` | WorkerSettings.redis_settings 类属性（启动修复，冒烟中发现） |
+
+**BFF 全链路冒烟结果**（Stub 模式，零凭据）：文本简历上传 → worker 解析 done（2 个项目）→ 建会话 →
+start SSE（node_start/token×N/question/paused/done）→ answer SSE（feedback + 新问题）→ end SSE（finished）→
+报告 3s 后 done（维度分六维/V1 schema）→ 会话状态 finished/3 条消息 → cost_ledger 逐次记账（ask/decide/generate_report）。
+
+### 计划偏离（Tasks 1-10，执行中发现与修正）
+
+| # | 计划原文 | 实际做法 | 原因 |
+|---|---|---|---|
+| 1 | 迁移文件名 `0001_initial.py` | autogenerate 哈希名 `75d1bb5fdc9a_initial.py` | Alembic 标准实践；内容等价 |
+| 2 | engine `pool_size=5` | `NullPool` | asyncpg 连接绑定事件循环，pytest 多 loop / TestClient 会 RuntimeError；生产侧有 Supavisor pooler |
+| 3 | — | ruff `extend-exclude = ["alembic/versions"]` | 自动生成文件不应被 lint（否则未来每次 autogenerate 都挂 CI） |
+| 4 | Stub `_synth_value` 默认合成 | 加 `ExtractedProjects`/`DecideResult`/`ReportV1` 三个特化分支 | 集成链路需要确定性真实形状数据 |
+| 5 | arq 连接池全局缓存 | 每次入队建池即关 | 同 #2：redis-py 连接绑定事件循环 |
+| 6 | `EXTRACT_PROMPT` 直接 `.format()` | JSON 花括号双写 `{{...}}` | 测试抓出 KeyError：format 把 JSON 当占位符 |
+| 7 | 引擎测试会话 id 用 `s-e2e-1` 字符串 | UUID + `helpers.ensure_session_rows` 建 DB 行 | finalize 写 rounds/messages 需合法 UUID 与外键行 |
+| 8 | `insert(Report).on_conflict_do_nothing` | `sqlalchemy.dialects.postgresql.insert` | 泛型 insert 无 PG 冲突子句 |
+| 9 | 测试内 Resume/Session/Round 同 flush 提交 | 逐层 flush | 无 relationship 时 UOW 不保证 FK 插入顺序 |
+| 10 | 会话 API 测试直接 `TestClient(create_app())` | `with TestClient(...)` + `reset_graph()` fixture | lifespan 内初始化 checkpointer；图单例需按 checkpointer 重建换绑 |
+| 11 | — | 新增依赖 `langchain`（完整包） | langfuse 4.x 的 `CallbackHandler` 要求（图内 LLM 调用入 trace） |
+| 12 | Task 9 结尾空 prompt 提交 | 合并为一次提交（prompt 在 tasks.py 内） | 避免 `--allow-empty` 伪提交 |
+| 13 | BFF 代理 `duplex: "half"` | 移除（body 用 arrayBuffer 缓冲） | 不再需要流式请求体 hack，消除 `@ts-expect-error` |
+| 14 | `WorkerSettings.redis_settings` 静态方法 | 类属性 `RedisSettings.from_dsn(...)` | arq 读类属性，staticmethod 对象没有 `.host`（启动即崩，冒烟抓出） |
+
+### 待执行
+
+| Task | 阻塞项 |
+|---|---|
+| 11 评测门禁 | 代码/数据集可先写；**验证需用户提供 `DEEPSEEK_API_KEY`**（本地 .env + GitHub Secrets） |
+| 12 集成测试+CI | 无阻塞（Stub 模式可全跑） |
+| 13 上线汇合 | 需用户操作：Supabase/Upstash/Vercel/k3s/本机 helm（spec §9 清单） |
+| 14 ADR+收尾 | 无阻塞；演示录屏需真实 LLM 效果（依赖 11 的 key） |
+
+其他：`demo/langgraph-interview/` 仍为未跟踪目录，保留为学习材料（并入 Git 与否待用户定）。
 
 ---
 
