@@ -2,6 +2,8 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { card } from "@/components/ui";
+
 interface Report {
   headline: string;
   total_score: number;
@@ -11,6 +13,12 @@ interface Report {
   issues: { text: string; evidence: string }[];
   improvements: string[];
   next_focus: string;
+}
+
+function scoreColor(s: number) {
+  if (s >= 4) return "bg-emerald-500";
+  if (s >= 3) return "bg-amber-500";
+  return "bg-rose-500";
 }
 
 export default function ReportPage() {
@@ -40,69 +48,127 @@ export default function ReportPage() {
 
   if (missing)
     return (
-      <main style={{ padding: 40 }}>
-        <h1>报告不存在</h1>
+      <main className="mx-auto max-w-3xl px-4 py-24 text-center text-slate-500">
+        报告不存在
       </main>
     );
+
   if (pending)
     return (
-      <main style={{ padding: 40 }}>
-        <h1>报告生成中…</h1>
-        <p>通常 1-2 分钟，页面会自动刷新。</p>
+      <main className="mx-auto flex max-w-3xl flex-col items-center px-4 py-24">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
+        <p className="mt-4 font-medium">报告生成中…</p>
+        <p className="mt-1 text-sm text-slate-500">深度评估约需 1-2 分钟，页面会自动刷新</p>
       </main>
     );
+
   if (!report) return null;
 
   return (
-    <main style={{ fontFamily: "system-ui", padding: 40, maxWidth: 760 }}>
-      <h1>{report.headline}</h1>
-      <p>
-        总分：<b>{report.total_score} / 5</b>
-      </p>
-      <h2>维度评分</h2>
-      <ul>
-        {report.dimensions.map((d, i) => (
-          <li key={i}>
-            {d.name}：{d.score}/5 — {d.comment}
-          </li>
-        ))}
-      </ul>
-      <h2>Top 亮点</h2>
-      <ul>
-        {report.highlights.map((h, i) => (
-          <li key={i}>
-            {h.text}
-            <blockquote>「{h.evidence}」</blockquote>
-          </li>
-        ))}
-      </ul>
-      <h2>Top 致命伤</h2>
-      <ul>
-        {report.issues.map((h, i) => (
-          <li key={i}>
-            {h.text}
-            <blockquote>「{h.evidence}」</blockquote>
-          </li>
-        ))}
-      </ul>
-      <h2>逐题回顾</h2>
-      {report.per_question.map((q, i) => (
-        <section key={i}>
-          <h3>{q.question}</h3>
-          <p>你的回答：{q.answer_summary}</p>
-          <p>点评：{q.comment}</p>
-        </section>
-      ))}
-      <h2>改进清单</h2>
-      <ol>
-        {report.improvements.map((x, i) => (
-          <li key={i}>{x}</li>
-        ))}
-      </ol>
-      <h2>下次练习重点</h2>
-      <p>{report.next_focus}</p>
-      <p>
-        <a href="/sessions">历史会话</a> · <a href="/upload">再来一场</a>
+    <main className="mx-auto max-w-3xl space-y-5 px-4 py-10">
+      <section className={card}>
+        <h1 className="text-lg leading-relaxed font-semibold">{report.headline}</h1>
+        <div className="mt-4 flex items-end gap-2">
+          <span className="text-4xl font-bold text-indigo-600">{report.total_score}</span>
+          <span className="pb-1 text-sm text-slate-400">/ 5 总分</span>
+        </div>
+      </section>
+
+      <section className={card}>
+        <h2 className="text-sm font-semibold text-slate-500">维度评分</h2>
+        <ul className="mt-4 space-y-4">
+          {report.dimensions.map((d, i) => (
+            <li key={i}>
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">{d.name}</span>
+                <span className="text-slate-500">{d.score} / 5</span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className={`h-full rounded-full ${scoreColor(d.score)}`}
+                  style={{ width: `${(d.score / 5) * 100}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{d.comment}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="grid gap-5 sm:grid-cols-2">
+        <div className={`${card} border-emerald-100`}>
+          <h2 className="text-sm font-semibold text-emerald-700">Top 亮点</h2>
+          <ul className="mt-3 space-y-4">
+            {report.highlights.map((h, i) => (
+              <li key={i} className="text-sm">
+                <p className="leading-relaxed">{h.text}</p>
+                <blockquote className="mt-2 border-l-2 border-emerald-300 pl-3 text-slate-500 italic">
+                  「{h.evidence}」
+                </blockquote>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className={`${card} border-rose-100`}>
+          <h2 className="text-sm font-semibold text-rose-700">Top 致命伤</h2>
+          <ul className="mt-3 space-y-4">
+            {report.issues.map((h, i) => (
+              <li key={i} className="text-sm">
+                <p className="leading-relaxed">{h.text}</p>
+                <blockquote className="mt-2 border-l-2 border-rose-300 pl-3 text-slate-500 italic">
+                  「{h.evidence}」
+                </blockquote>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className={card}>
+        <h2 className="text-sm font-semibold text-slate-500">逐题回顾</h2>
+        <div className="mt-4 space-y-6">
+          {report.per_question.map((q, i) => (
+            <div key={i} className="border-t border-slate-100 pt-4 first:border-0 first:pt-0">
+              <h3 className="text-sm font-semibold">{q.question}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                <span className="font-medium text-slate-600">你的回答：</span>
+                {q.answer_summary}
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
+                <span className="font-medium text-slate-600">点评：</span>
+                {q.comment}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={card}>
+        <h2 className="text-sm font-semibold text-slate-500">改进清单（按优先级）</h2>
+        <ol className="mt-4 space-y-3">
+          {report.improvements.map((x, i) => (
+            <li key={i} className="flex gap-3 text-sm leading-relaxed">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white">
+                {i + 1}
+              </span>
+              <span>{x}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-6">
+        <h2 className="text-sm font-semibold text-indigo-700">下次练习重点</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-700">{report.next_focus}</p>
+      </section>
+
+      <p className="flex justify-center gap-4 pt-2 text-sm text-slate-500">
+        <a href="/sessions" className="hover:text-indigo-600">
+          历史会话
+        </a>
+        <a href="/upload" className="hover:text-indigo-600">
+          再来一场
+        </a>
       </p>
     </main>
   );
