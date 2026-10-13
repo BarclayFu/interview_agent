@@ -20,15 +20,16 @@ export async function* streamSse(
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
+  // SSE 帧分隔符可能是 \n\n 或 \r\n\r\n（sse-starlette 默认 \r\n）——两者都要认
+  const FRAME_DELIM = /\r?\n\r?\n/;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
     buf += decoder.decode(value, { stream: true });
-    // SSE 帧以空行分隔；帧内 event:/data: 两行
-    let idx;
-    while ((idx = buf.indexOf("\n\n")) >= 0) {
-      const frame = buf.slice(0, idx);
-      buf = buf.slice(idx + 2);
+    let m: RegExpExecArray | null;
+    while ((m = FRAME_DELIM.exec(buf)) !== null) {
+      const frame = buf.slice(0, m.index);
+      buf = buf.slice(m.index + m[0].length);
       let event = "message";
       let data = "";
       for (const rawLine of frame.split("\n")) {

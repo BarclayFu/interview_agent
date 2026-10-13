@@ -88,14 +88,68 @@ export default function InterviewPage() {
         if (e.event === "done") void refreshObs();
       }
     } catch (err) {
-      setStatus(`连接中断：${err}`);
+      const msg = String(err);
+      if (msg.includes("409")) {
+        setStatus("会话已开始，正在恢复状态…");
+        void bootstrap(true);
+      } else {
+        setStatus(`连接中断：${msg}`);
+      }
     }
+  }
+
+  async function bootstrap(fromConflict = false) {
+    // 刷新/恢复场景：会话可能已开始——先水合已有状态，不盲目再 start（会 409）
+    try {
+      const [sr, gr] = await Promise.all([
+        fetch(`/api/sessions/${id}`),
+        fetch(`/api/sessions/${id}/debug`),
+      ]);
+      if (sr.ok) {
+        const s = (await sr.json()) as {
+          status: string;
+          phase: string;
+          question_count: number;
+          messages: Msg[];
+        };
+        if (s.messages.length > 0) {
+          setMessages(s.messages);
+          if (gr.ok) {
+            const g = (await gr.json()) as DebugResponse;
+            setDebug(g);
+            setLive({
+              phase: g.state.phase ?? s.phase,
+              question_count: g.state.question_count,
+              followup_depth: g.state.followup_depth,
+              current_project_idx: g.state.current_project_idx,
+              hint_count: g.state.hint_count,
+            });
+          }
+          if (s.status === "finished") {
+            setFinished(true);
+            setStatus("面试已结束");
+          } else {
+            setAwaiting(true);
+            setStatus("已恢复会话，等待你的回答");
+          }
+          void refreshObs();
+          return;
+        }
+      }
+    } catch {
+      /* 网络异常：落回 start 流程 */
+    }
+    if (fromConflict) {
+      setStatus("会话已开始但读不到状态，请刷新页面");
+      return;
+    }
+    void drive({ action: "start" });
   }
 
   useEffect(() => {
     if (!started.current) {
       started.current = true;
-      void drive({ action: "start" });
+      void bootstrap();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
