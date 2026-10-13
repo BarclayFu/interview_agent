@@ -6,7 +6,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: interview_agent
     ports:
-      - "5432:5432"
+      # 5433：避开宿主机上其它项目的 PG（如 5432 的 pgvector 容器），两项目共存
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

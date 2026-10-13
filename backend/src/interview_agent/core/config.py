@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 必须用绝对路径：以 backend/ 为 CWD 启动时，相对 ".env" 读不到仓库根的 .env
@@ -11,7 +12,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
     app_env: str = "dev"
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/interview_agent"
+    # 本机 5432 常被其它项目占用，本项目 compose 映射到宿主机 5433
+    database_url: str = "postgresql://postgres:postgres@localhost:5433/interview_agent"
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: str = "http://localhost:3000"
 
@@ -20,8 +22,10 @@ class Settings(BaseSettings):
     langfuse_base_url: str = "https://cloud.langfuse.com"
     otel_service_name: str = "interview-agent-api"
 
-    # LLM
-    deepseek_api_key: str | None = None
+    # LLM（本地 .env 兼容两种命名：DEEPSEEK_API_KEY 或通用 API_KEY）
+    deepseek_api_key: str | None = Field(
+        default=None, validation_alias=AliasChoices("DEEPSEEK_API_KEY", "API_KEY")
+    )
     deepseek_base_url: str = "https://api.deepseek.com"
     llm_model_chat: str = "deepseek-chat"
     llm_model_report: str = "deepseek-reasoner"
