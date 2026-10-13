@@ -65,23 +65,27 @@ class DeepSeekProvider:
         session_id: uuid.UUID | str | None = None,
     ) -> AsyncIterator[str]:
         start = now_ms()
-        prompt_tokens = 0
-        completion_tokens = 0
+        usage_meta: dict[str, Any] = {}
+        resp_meta: dict[str, Any] = {}
         async for chunk in self._chat.astream(messages):
             text = chunk.content
             if isinstance(text, str) and text:
                 yield text
             if chunk.usage_metadata:
-                prompt_tokens = int(chunk.usage_metadata.get("input_tokens", 0))
-                completion_tokens = int(chunk.usage_metadata.get("output_tokens", 0))
+                usage_meta = dict(chunk.usage_metadata)
+            if chunk.response_metadata:
+                resp_meta = dict(chunk.response_metadata)
+        cache_hit, cache_miss = _cache_tokens(usage_meta, resp_meta)
         await record_usage(
             Usage(
                 session_id=session_id,
                 node=node,
                 provider="deepseek",
                 model=self.model,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
+                prompt_tokens=int(usage_meta.get("input_tokens", 0)),
+                completion_tokens=int(usage_meta.get("output_tokens", 0)),
+                cache_hit_tokens=cache_hit,
+                cache_miss_tokens=cache_miss,
                 latency_ms=int(now_ms() - start),
             )
         )
@@ -104,6 +108,7 @@ class DeepSeekProvider:
                 data = json.loads(_strip_code_fence(raw))
                 out = schema.model_validate(data)
                 usage: dict[str, Any] = dict(resp.usage_metadata or {})
+                cache_hit, cache_miss = _cache_tokens(usage, dict(resp.response_metadata or {}))
                 await record_usage(
                     Usage(
                         session_id=session_id,
@@ -112,6 +117,8 @@ class DeepSeekProvider:
                         model=self.model,
                         prompt_tokens=int(usage.get("input_tokens", 0)),
                         completion_tokens=int(usage.get("output_tokens", 0)),
+                        cache_hit_tokens=cache_hit,
+                        cache_miss_tokens=cache_miss,
                         latency_ms=int(now_ms() - start),
                     )
                 )
@@ -243,6 +250,21 @@ def _strip_code_fence(raw: str) -> str:
     if raw.startswith("json"):
         raw = raw[4:]
     return raw.strip()
+
+
+def _cache_tokens(usage_meta: dict[str, Any], response_meta: dict[str, Any]) -> tuple[int, int]:
+    """返回 (cache_hit, cache_miss) tokens。
+
+    优先 DeepSeek 原生字段（response_metadata.token_usage.prompt_cache_hit_tokens）；
+    其次 langchain 标准映射（usage_metadata.input_token_details.cache_read）。
+    """
+    raw = response_meta.get("token_usage") or {}
+    if raw.get("prompt_cache_hit_tokens") is not None:
+        return int(raw["prompt_cache_hit_tokens"]), int(raw.get("prompt_cache_miss_tokens") or 0)
+    details = usage_meta.get("input_token_details") or {}
+    hit = int(details.get("cache_read") or 0)
+    prompt = int(usage_meta.get("input_tokens") or 0)
+    return hit, max(prompt - hit, 0)
 
 
 def _synth_value(name: str, field: FieldInfo) -> Any:

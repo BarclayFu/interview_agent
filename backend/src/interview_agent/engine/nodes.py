@@ -31,6 +31,19 @@ def _emit(writer: Any, event: str, data: dict[str, Any]) -> None:
     writer({"event": event, "data": data})
 
 
+def _state_snapshot(state: ProjectRoundState, update: dict[str, Any]) -> dict[str, Any]:
+    """合并后的状态快照（供开发者面板实时展示状态机内部）。"""
+    return {
+        "phase": update.get("phase", state.get("phase")),
+        "question_count": update.get("question_count", state.get("question_count", 0)),
+        "followup_depth": update.get("followup_depth", state.get("followup_depth", 0)),
+        "current_project_idx": update.get(
+            "current_project_idx", state.get("current_project_idx", 0)
+        ),
+        "hint_count": state.get("hint_count", 0),
+    }
+
+
 def _system(state: ProjectRoundState) -> str:
     return INTERVIEWER_SYSTEM.format(
         resume_summary=state["resume_summary"],
@@ -96,6 +109,7 @@ async def ask(state: ProjectRoundState) -> dict[str, Any]:
         update["question_count"] = state.get("question_count", 0) + 1
         update["followup_depth"] = 0
         update["asked_questions"] = [question]
+    _emit(writer, "state", _state_snapshot(state, update))
     return update
 
 
@@ -143,7 +157,7 @@ async def give_hint(state: ProjectRoundState) -> dict[str, Any]:
         pieces.append(tok)
         _emit(writer, "token", {"text": tok})
     hint = "".join(pieces)
-    _emit(writer, "hint", {"text": hint})
+    _emit(writer, "hint", {"text": hint, "hint_count": state.get("hint_count", 0) + 1})
     return {
         "hint_count": state.get("hint_count", 0) + 1,
         "transcript": [AIMessage(content=f"（提示）{hint}")],
@@ -173,17 +187,34 @@ async def decide(state: ProjectRoundState) -> dict[str, Any]:
     )
 
     action = result.next_action
+    guard: str | None = None
     # 守卫覆盖（spec §5.4：规则优先于模型判断）
     if action == "followup" and must_stop_followup(state.get("followup_depth", 0)):
         action = "next_question"
+        guard = "followup_cap"
     if must_close(state.get("question_count", 0), state["max_questions"]):
         action = "closing"
+        guard = "question_cap"
     if action == "switch_project" and state.get("current_project_idx", 0) + 1 >= len(
         state["projects"]
     ):
         action = "closing"
+        guard = "no_more_projects"
 
-    _emit(writer, "feedback", {"score": result.score, "rationale": result.rationale})
+    _emit(
+        writer,
+        "feedback",
+        {
+            "score": result.score,
+            "rationale": result.rationale,
+            "evidence": result.evidence,
+            "next_action": result.next_action,
+            "effective_action": action,
+            "guard": guard,
+            "followup_depth": state.get("followup_depth", 0),
+            "question_count": state.get("question_count", 0),
+        },
+    )
     update: dict[str, Any] = {
         "scores": [
             {

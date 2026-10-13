@@ -3,6 +3,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { card } from "@/components/ui";
+import type { UsageTotals } from "@/lib/types";
 
 interface Report {
   headline: string;
@@ -24,6 +25,7 @@ function scoreColor(s: number) {
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<Report | null>(null);
+  const [usage, setUsage] = useState<UsageTotals | null>(null);
   const [pending, setPending] = useState(true);
   const [missing, setMissing] = useState(false);
 
@@ -41,6 +43,11 @@ export default function ReportPage() {
         setReport(body.report);
         setPending(false);
         clearInterval(timer);
+        // 报告就绪后拉一次本场用量（开发者视图）
+        fetch(`/api/sessions/${id}/usage`)
+          .then((res) => res.json())
+          .then((u: { totals: UsageTotals }) => setUsage(u.totals))
+          .catch(() => {});
       }
     }, 3000);
     return () => clearInterval(timer);
@@ -161,6 +168,25 @@ export default function ReportPage() {
         <h2 className="text-sm font-semibold text-indigo-700">下次练习重点</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-700">{report.next_focus}</p>
       </section>
+
+      {usage && usage.calls > 0 && (
+        <section className={card}>
+          <h2 className="text-sm font-semibold text-slate-500">本场用量</h2>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              ["模型调用", `${usage.calls} 次`],
+              ["Tokens", `${usage.prompt_tokens + usage.completion_tokens}`],
+              ["缓存命中率", `${Math.round(usage.cache_hit_rate * 100)}%`],
+              ["成本", `¥${usage.cost_cny.toFixed(4)}`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl bg-slate-50 px-3 py-2.5">
+                <p className="text-xs text-slate-400">{label}</p>
+                <p className="mt-0.5 text-sm font-semibold">{value}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <p className="flex justify-center gap-4 pt-2 text-sm text-slate-500">
         <a href="/sessions" className="hover:text-indigo-600">

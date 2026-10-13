@@ -56,4 +56,5 @@ async def get_resume(
         "parse_status": resume.parse_status,
         "parsed_projects": resume.parsed_projects,
         "parse_error": resume.parse_error,
+        "raw_text_preview": (resume.raw_text or "")[:500],
     }

@@ -4,7 +4,19 @@ import { useState } from "react";
 
 import { Badge, btn, card, input, statusTone } from "@/components/ui";
 
-type Status = { parse_status: string; parsed_projects?: { name: string }[]; parse_error?: string };
+type Project = {
+  name: string;
+  period?: string;
+  role?: string;
+  tech?: string[];
+  claims?: string[];
+};
+type Status = {
+  parse_status: string;
+  parsed_projects?: Project[];
+  parse_error?: string;
+  raw_text_preview?: string;
+};
 
 export default function UploadPage() {
   const router = useRouter();
@@ -119,17 +131,58 @@ export default function UploadPage() {
           {status.parsed_projects && status.parsed_projects.length > 0 && (
             <ul className="mt-4 space-y-2">
               {status.parsed_projects.map((p, i) => (
-                <li
-                  key={i}
-                  className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm"
-                >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-medium text-indigo-600 ring-1 ring-slate-200">
-                    {i + 1}
-                  </span>
-                  <span className="font-medium text-slate-800">{p.name}</span>
+                <li key={i} className="rounded-xl bg-slate-50 px-4 py-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-medium text-indigo-600 ring-1 ring-slate-200">
+                      {i + 1}
+                    </span>
+                    <span className="font-medium text-slate-800">{p.name}</span>
+                    {p.role && <span className="text-xs text-slate-500">{p.role}</span>}
+                    {p.period && <span className="text-xs text-slate-400">{p.period}</span>}
+                  </div>
+                  {p.tech && p.tech.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {p.tech.map((t) => (
+                        <span
+                          key={t}
+                          className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-600 ring-1 ring-slate-200"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {p.claims && p.claims.length > 0 && (
+                    <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-slate-500">
+                      {p.claims.map((c, j) => (
+                        <li key={j}>{c}</li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
+          )}
+
+          {(status.parsed_projects || status.raw_text_preview) && (
+            <details className="mt-4 text-xs text-slate-500">
+              <summary className="cursor-pointer select-none hover:text-slate-700">
+                查看抽取详情（结构化 JSON / 解析出的原始文本）
+              </summary>
+              <div className="mt-2 space-y-2">
+                <pre className="max-h-64 overflow-auto rounded-xl bg-slate-900 p-3 text-[11px] leading-relaxed text-slate-100">
+                  {JSON.stringify(status.parsed_projects ?? [], null, 2)}
+                </pre>
+                {status.raw_text_preview && (
+                  <div>
+                    <p className="font-medium">解析出的文本（前 500 字）</p>
+                    <pre className="mt-1 max-h-40 overflow-auto rounded-xl bg-white p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-slate-600 ring-1 ring-slate-200">
+                      {status.raw_text_preview}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </details>
           )}
 
           {status.parse_status === "done" && (
