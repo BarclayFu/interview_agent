@@ -1,0 +1,17 @@
+{
+  "kind": "decide",
+  "note": "完整架构回答 → 挖透后换题",
+  "question": "介绍下订单系统的整体架构。",
+  "answer": "订单系统分四层：接入层 Nginx 按一致性哈希做负载均衡；业务层是订单主服务，按 DDD 拆成订单、库存、支付三个限界上下文；异步层用 Kafka 处理库存扣减与物流通知；存储层 MySQL 按用户 ID 分 16 库 64 表，热点商品走 Redis，缓存命中率约 92%。我负责拆分方案设计和一致性保障，主导了从单体到三服务的迁移。",
+  "expect": {
+    "next_action_in": [
+      "followup",
+      "next_question",
+      "switch_project"
+    ],
+    "score_between": [
+      6,
+      10
+    ]
+  }
+}

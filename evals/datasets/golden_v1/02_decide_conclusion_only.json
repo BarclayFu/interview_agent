@@ -1,0 +1,15 @@
+{
+  "kind": "decide",
+  "note": "只有结论没有细节 → 追问",
+  "question": "订单表数据量大了以后你们怎么处理？",
+  "answer": "我们做了分库分表。",
+  "expect": {
+    "next_action_in": [
+      "followup"
+    ],
+    "score_between": [
+      1,
+      7
+    ]
+  }
+}

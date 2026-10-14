@@ -1,0 +1,18 @@
+{
+  "kind": "decide",
+  "note": "诚实承认不了解 → 不重罚（诚实度）",
+  "question": "你们库存扣减用的 Redis Lua 脚本具体怎么写的？",
+  "answer": "这块是我同事负责的，我没有直接参与，细节记不太清了。我的理解是预占阶段用 Lua 保证扣减和判断的原子性，但具体脚本逻辑我确实说不上来。",
+  "expect": {
+    "next_action_in": [
+      "followup",
+      "next_question",
+      "switch_project",
+      "closing"
+    ],
+    "score_between": [
+      3,
+      7
+    ]
+  }
+}

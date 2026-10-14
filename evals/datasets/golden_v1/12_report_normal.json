@@ -1,0 +1,34 @@
+{
+  "kind": "report",
+  "note": "正常 transcript（数字/取舍/复盘齐全）",
+  "transcript": "[interviewer|question] 介绍一下订单系统的整体架构以及你的职责。\n[candidate|answer] 系统分三层：接入层用 Nginx 做负载均衡，业务层是订单主服务，存储层 MySQL 按用户 ID 分 16 库 64 表，热点商品走 Redis 缓存。我负责拆分方案设计，主导了单体到三服务的迁移。\n[interviewer|question] 你提到分 16 库 64 表，分片键为什么选用户 ID？\n[candidate|answer] 因为订单查询 90% 以上是买家维度，按买家 ID 分片可以让同一用户的订单落在同一库，避免跨库查询；卖家维度的查询走异步构建的宽表。\n[interviewer|question] 跨库分页怎么处理的？\n[candidate|answer] 这块我们做了二次查询：先查各分片的主键，内存归并排序后按主键回表。缺点是深分页内存占用高，超过一定页数我们直接限制只允许导出。\n[interviewer|question] 一致性方案呢？\n[candidate|answer] 本地消息表加对账。订单落库和消息在同一事务，Kafka 消费端按业务唯一键幂等，对账任务每 5 分钟扫描未完成消息重投。压测下单链路 2400 QPS，对账差错率百万分之一以内。\n[interviewer|question] 如果流量涨 10 倍，系统会先炸在哪？\n[candidate|answer] 应该是 MySQL 的分片写入热点：16 库按用户 ID 分片，遇到大促期间头部商家订单集中，单分片写放大明显。我们的预案是加一层分片路由先做流量削峰，但还没来得及落地。\n[interviewer|question] 复盘一下这次重构最大的教训。\n[candidate|answer] 最大的教训是灰度方案做得太粗：第一批就放了 5% 流量并且没有按商家维度收敛，结果某头部商家全量落在新链路，出现一次库存超卖。后来改成按商家白名单逐批放量，这个教训写在团队复盘文档里。",
+  "scores": [
+    {
+      "question": "介绍下订单系统架构",
+      "score": 8
+    },
+    {
+      "question": "分片键为什么选用户 ID",
+      "score": 8
+    },
+    {
+      "question": "跨库分页怎么处理",
+      "score": 7
+    },
+    {
+      "question": "一致性方案呢",
+      "score": 8
+    },
+    {
+      "question": "流量涨 10 倍先炸哪",
+      "score": 6
+    },
+    {
+      "question": "复盘最大教训",
+      "score": 7
+    }
+  ],
+  "expect": {
+    "evidence_locatable": true
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "kind": "report",
+  "note": "极短回答 → 总分必须低（评分不放水）",
+  "transcript": "[interviewer|question] 介绍一下你的项目。\n[candidate|answer] 就是做后端。\n[interviewer|question] 具体用的什么技术？\n[candidate|answer] 一些常用的吧。\n[interviewer|question] 遇到过什么难题吗？\n[candidate|answer] 没有，都挺顺利的。\n[interviewer|question] 你的职责是什么？\n[candidate|answer] 写代码。\n[interviewer|question] 有量化数据吗？\n[candidate|answer] 记不清了。",
+  "scores": [
+    {
+      "question": "介绍项目",
+      "score": 2
+    },
+    {
+      "question": "技术栈",
+      "score": 1
+    },
+    {
+      "question": "难题",
+      "score": 1
+    },
+    {
+      "question": "职责",
+      "score": 1
+    },
+    {
+      "question": "量化",
+      "score": 1
+    }
+  ],
+  "expect": {
+    "evidence_locatable": true,
+    "total_score_max": 3
+  }
+}

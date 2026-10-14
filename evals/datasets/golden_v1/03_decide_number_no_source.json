@@ -1,0 +1,15 @@
+{
+  "kind": "decide",
+  "note": "数字没有来源 → 追问数字怎么来的",
+  "question": "这次重构的收益如何量化？",
+  "answer": "重构之后系统性能提升了 3 倍，稳定性也好了很多，故障率下降明显。",
+  "expect": {
+    "next_action_in": [
+      "followup"
+    ],
+    "score_between": [
+      1,
+      8
+    ]
+  }
+}
