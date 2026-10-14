@@ -41,19 +41,22 @@ class Provider(Protocol):
 
 
 class DeepSeekProvider:
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, timeout: float | None = None) -> None:
         from langchain_openai import ChatOpenAI
 
         s = get_settings()
         if not s.deepseek_api_key:
             raise RuntimeError("缺少 DEEPSEEK_API_KEY")
         self.model = model or s.llm_model_chat
+        # 超时策略（spec §5.5）：对话 30s；报告用 reasoner 长文生成，实测可能超过 30s → 120s
+        if timeout is None:
+            timeout = 120.0 if "reasoner" in self.model else 30.0
         self._chat = ChatOpenAI(
             model=self.model,
             base_url=s.deepseek_base_url,
             api_key=SecretStr(s.deepseek_api_key),
             temperature=0.7,
-            timeout=30,
+            timeout=timeout,
             max_retries=2,  # 指数退避由 SDK 实现
         )
 
